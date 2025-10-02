@@ -49,7 +49,7 @@ install.packages("tmap")
 
 library(sf) # for vector data (more soon!)
 library(stars) # for raster data (more soon!)
-library(tmap) # for static and interactive maps
+library(tmap) #or static and interactive maps
 library(here)
 ```
 
