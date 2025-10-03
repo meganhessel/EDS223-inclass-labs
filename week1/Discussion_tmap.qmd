@@ -3,3 +3,136 @@ title: "Discussion_tmap"
 format: html
 ---
 
+# Discussion Session 
+### Making maps with tmap and beyond
+
+```{r}
+# Load libraries 
+library(here)
+library(tidyverse)
+library(sf)
+library(stars)
+library(tmap)
+```
+
+```{r}
+# Download the data 
+
+ei_points <- st_read(here("week1", "data", "easter-island", "ei_points.gpkg")) %>%  filter(type == "volcano")
+ei_elev <- read_stars(here("week1","data", "easter-island", "ei_elev.tif"))
+ei_borders <- st_read(here("week1","data", "easter-island", "ei_border.gpkg"))
+ei_roads <- st_read(here("week1","data", "easter-island", "ei_roads.gpkg"))
+```
+
+```{r}
+# Create a map of the outline Rapa Nui using tm_shape() + tm_borders()
+tm_shape(ei_borders) + 
+  tm_borders() + 
+  tm_layout(title = "Easter Island")
+```
+
+```{r}
+# Create a multiple-object map with tmap
+
+# …denote the island’s borders and continuous elevation
+tm_shape(ei_borders) + 
+  tm_borders() + 
+  tm_layout(title = "Easter Island") + 
+
+  tm_shape(ei_elev) +
+  tm_raster(col.scale = tm_scale(values = c("#EA7580FF", "#F6A1A5FF", "#F8CD9CFF", "#1BB6AFFF", "#088BBEFF", "#172869FF")))
+    
+    #palette = "viridis", 
+            #col_alpha = 0.85)
+
+
+# …denote the island’s volcanoes and roads
+tm_shape(ei_borders) + 
+  tm_borders() + 
+  tm_layout(title = "Easter Island") + 
+
+tm_shape(ei_roads) + 
+  tm_lines(col = "grey")+
+
+tm_shape(ei_points) +
+  tm_symbols(shape = 24, 
+             fill = "red", 
+             fill_alpha = 0.5) + 
+  tm_text("name", size = 0.4)
+  
+
+# …play with the color palette and essential map elements
+main_map <- tm_shape(ei_borders) + 
+  tm_borders() + 
+  tm_layout(title = "Easter Island", 
+            outer.bg.color = "ivory", 
+            bg.color = "lightblue") + 
+  
+tm_shape(ei_elev) +
+  tm_raster(col.scale = tm_scale(values = c("#EA7580FF", "#F6A1A5FF", "#F8CD9CFF", "#1BB6AFFF", "#088BBEFF", "#172869FF")), 
+            col.legend = tm_legend("Elevation (m asl)")) +
+
+tm_shape(ei_roads) + 
+  tm_lines(col = "grey32")+
+
+tm_shape(ei_points) +
+  tm_symbols(shape = 24, 
+             fill = "red", 
+             fill_alpha = 0.5) + 
+  tm_text("name", size = 0.4) +
+  tm_compass() + 
+  tm_scalebar()
+
+main_map
+
+tmap_save(main_map, here::here("week1", "main_map.jpg"))
+
+
+ggsave(here::here("week1", "easter_island_map.png"))
+
+
+```
+
+
+```{r}
+# 4. Create an interactive map with tmap
+tmap_mode("view")
+main_map
+tmap_mode("plot")
+main_map
+
+```
+
+```{r}
+# 5. Create a multiple-object map with ggplot2
+# extract lat & long from geom column 
+volcanoes_point <- ei_points %>%
+  mutate(lon = unlist(map(ei_points$geom,1)), # longitude = first component (x)
+         lat = unlist(map(ei_points$geom,2))) # latitude = second component (y)
+
+library(ggplot2)
+ggplot() +
+  # first add Easter Isand borders
+  geom_sf(data = ei_borders, color = "#212529") +
+  # add elevation raster
+  geom_stars(data = ei_elev) +
+  scale_fill_distiller(name = "Elevation (m asl)", # legend title with units
+                       palette = "RdYlGn",         # red-yellow-green palette (no need to reverse)
+                       na.value = "lightblue") +  # set NA color (background ocean)
+  # add road vector
+  geom_sf(data = ei_roads, color = "#343a40") +
+  # add volcano vector
+  geom_point(data = volcanoes_point, 
+             aes(x = lon, y = lat, 
+                 size = elevation), # point size depends on attribute value
+             shape = 17,            # triangle
+             color = "#22577a") +
+  scale_size_continuous(name = "Volcanoes (m asl)") +       # legend title with units
+  ggspatial::annotation_north_arrow(location = "br",        # bottom right
+                                    which_north = "true") + # point to north pole
+  ggspatial::annotation_scale(location = "bl",              # bottom left
+                              width_hint = 0.5) +           # proportion of map area the scalebar should occupy
+  labs(title = "Easter Island") +
+  theme_minimal()
+```
+
