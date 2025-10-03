@@ -488,14 +488,33 @@ A scale bar is a graphic indicator of the relation between a distance on a map a
 
 ```{r}
 tm_shape(world_vector) + 
-  tm_polygons(fill = "wb_income_region", 
-              fill.legend = tm_legend(title = "Regional Income")) + 
+  tm_polygons(fill = "gdp_per_cap", 
+              fill.scale = tm_scale(breaks = c(0,500,1000,2000,4000,80000), 
+                                    lables = c('low', 'medium', 'high', 'very high'))) + 
   tm_title(text = "Global Income", 
            frame = TRUE) + 
   tm_layout(text.frontfamily = "Ariel", 
             style = "beaver", 
-            bg.color = "grey95")
-  
+            frame.double_line = TRUE,
+            panel.show = TRUE, 
+            color_vision_deficiency_sim = ("protan"), 
+            bg.color = 'green'
+            )
+
+
+
+
+tm_shape(world_vector) + 
+  tm_polygons(fill = "gdp_per_cap", 
+              fill.legend = tm_legend(title = "Life Expectancy Years") + 
+  tm_title(text = "Global Income", 
+           frame = TRUE) + 
+  tm_layout(text.frontfamily = "Ariel", 
+            style = "beaver", 
+            bg.color = "grey95", 
+            panel.show = TRUE, 
+            panel.lables = 'YOOO')
+
 
 ```
 
@@ -504,8 +523,20 @@ tm_shape(world_vector) +
 Similar to the `theme()` function in `ggplot2`, the `tm_layout()` function in `tmap` controls many of the map elements of the map layout.
 
 ```{r}
-
+tmap_mode("view")
 ```
+
+```{r}
+map_1 <- tm_shape(world_vector) + 
+  tm_polygons(fill = "gdp_per_cap", 
+              fill.legend = tm_legend(title = "GDP Per Capita"))
+
+tmap_save(map_1, here::here("week1", "tmap_example.png"))
+
+
+tmap_mode("plot")
+```
+
 
 ## 7. Interactive options
 
