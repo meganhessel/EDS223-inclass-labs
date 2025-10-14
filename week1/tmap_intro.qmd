@@ -50,7 +50,7 @@ There are MANY different ways to make maps in R, all with different pros/cons. C
 library(sf) # for vector data (more soon!)
 library(stars) # for raster data (more soon!)
 library(tmap) #or static and interactive maps
-library(here)
+library(here
 ```
 
 ## 3. Specifying spatial data
