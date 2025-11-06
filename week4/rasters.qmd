@@ -16,26 +16,26 @@ editor_options:
 [terra](https://rspatial.github.io/terra/){target="_blank"}
 :::
 
-::: {.callout-note icon=true}
+::: {.callout-note icon="true"}
 # Source Materials
+
 The following materials are modified from [Chapters 3](https://geocompr.robinlovelace.net/attr.html), [4](https://geocompr.robinlovelace.net/spatial-operations.html), and [5](https://geocompr.robinlovelace.net/geometry-operations.html) of *Geocomputation with R* by Robin Lovelace.
 :::
 
 In this lab we'll be exploring the basics of raster data, including spatial data and geometry operations. Raster data represents continuous surfaces, as opposed to the discrete features represented in the vector data model. We'll primarily be working with data from Zion National Park in Utah.
 
-
-
-
 # Spatial data operations
+
 ## 1. Set Up
 
 First, let's install the `{geoData}` package which we'll use later in the lab to get access to example datasets.
+
 ```{r}
 #| eval: false
 install.packages("geodata") <- 
 ```
 
-Now let's load all the necessary packages. R has several packages for handling raster data. In this lab, we'll use the `{terra}` package. 
+Now let's load all the necessary packages. R has several packages for handling raster data. In this lab, we'll use the `{terra}` package.
 
 ```{r}
 #| message: false
@@ -59,8 +59,8 @@ The `{terra}` package represents raster objects using the `SpatRaster` class. Th
 
 We'll start with an example of two datasets for Zion National Park from the `spDataLarge` package:
 
-- `srtm.tif`: remotely sensed elevation estimates (continuous data)
-- `nlcd.tif`: simplified version of the National Land Cover Database 2011 product (categorical data)
+-   `srtm.tif`: remotely sensed elevation estimates (continuous data)
+-   `nlcd.tif`: simplified version of the National Land Cover Database 2011 product (categorical data)
 
 ```{r}
 # create raster objects
@@ -82,7 +82,7 @@ map2 <- tm_shape(zion_land) +
 tmap_arrange(map1, map2, nrow = 1)
 ```
 
-The `SpatRaster` class can also handle multiple "layers". Layers can store different variables for the same region in one object. This is similar to attributes (or columns) in `data.frames`. Later in the course when we discuss multispectral data, we'll learn more about why remotely-sensed data will often contain multiple "bands" or layers. 
+The `SpatRaster` class can also handle multiple "layers". Layers can store different variables for the same region in one object. This is similar to attributes (or columns) in `data.frames`. Later in the course when we discuss multispectral data, we'll learn more about why remotely-sensed data will often contain multiple "bands" or layers.
 
 As an example, we'll load a dataset from `spDataLarge` containing the four bands of the Landsat 8 image for Zion National Park.
 
@@ -118,6 +118,7 @@ landsat34 <- c(landsat3, landsat4)
 ```
 
 ### Merging Rasters
+
 In some cases, data for a region will be stored in multiple, contiguous files. To use them as a single raster, we need to merge them.
 
 In this example, we download elevation data for Austria and Switzerland and merge the two rasters into one.
@@ -130,7 +131,6 @@ switzerland <- geodata::elevation_30s(country = "CHE", path = tempdir())
 merge <- merge(austria, switzerland)
   # Need to be similar in extent, position, and resolution 
 ```
-
 
 ```{r}
 map1 <- tm_shape(austria) + 
@@ -149,7 +149,6 @@ map3 <- tm_shape(merge) +
 
 tmap_arrange(map1, map2, map3, nrow = 1)
 ```
-
 
 ### Inspecting raster objects
 
@@ -173,7 +172,7 @@ freq(zion_land)
 
 ### Indexing
 
-We can index rasters using row-column indexing or cell IDs. 
+We can index rasters using row-column indexing or cell IDs.
 
 ```{r}
 # row 1, column 1
@@ -205,6 +204,7 @@ zion_elevation[1,1]
 ```
 
 Replacing values in multi-layer rasters requires a matrix with as many columns as layers and rows as replaceable cells.
+
 ```{r}
 # Replacing values in multi layer with a matrix 
 landsat[1] <- cbind(c(0), c(0), c(0), c(0))
@@ -240,6 +240,7 @@ To use coordinates for subsetting, we can "translate" coordinates into a cell ID
 # pt1 define coordinates 
 point <- matrix(c(-113, 37.5), ncol = 2)
 
+
 # pt2 EXTRACT FROM RASTER DATA 
 
 
@@ -268,199 +269,333 @@ clip <- rast(xmin = -113.2, xmax = -113, ymin = 37.2, ymax = 37.9,
 zion_elevation_clip <- zion_elevation[clip]
 ```
 
+In the previous example, we just got the values of the raster back (and lost the raster format). In some cases, we might want the output to be the raster cells themselves.
 
-In the previous example, we just got the values of the raster back (and lost the raster format). In some cases, we might want the output to be the raster cells themselves. 
-
-We can do this use the "[" operator and setting "drop = FALSE".
+We can do this use the "\[" operator and setting "drop = FALSE".
 
 ```{r}
+# Warning Message if 
 if(ncell(zion_elevation == nrow(zion_elevation_clip))){ 
   warning("Clipping did not remove cells")
 } else {
   print("Clipping removed cells")
 }
-
 ```
 
 ```{r}
 # Clipping removing cells 
-zion_elevation_clip <- zion_elevation[clip, drop = FALSE]
- 
+zion_elevation_clip <- zion_elevation[clip, 
+                                      drop = FALSE] # drop = TRUE, drops the geometeries 
+
 ```
 
-:::{.callout-warning icon=true}
+```{r}
+# Mapping original extent vs clipped extent 
+map1 <- tm_shape(zion_elevation) + 
+  tm_raster(col.legend = tm_legend(title = "Elevation (m)")) + 
+  tm_title(text = "Original") 
+  
+map2 <- tm_shape(zion_elevation_clip) + 
+  tm_raster(col.legend = tm_legend(title = "Elevation (m)")) + 
+  tm_title(text= "Clipped")
+
+tmap_arrange(map1, map2, nrow = 1)
+
+```
+
+```{r}
+# Message about extents matching 
+
+if(ext(zion_elevation) == ext(zion_elevation_clip)) {
+  print("Extents match")
+} else {
+  print("Extents do not match")
+}
+
+```
+
+::: {.callout-warning icon="true"}
 # Woops, is the clipped version really smaller?
 
 Plotting side-by-side, the clipped version appears to take up more space -- does this mean the clipping didn't work? How can we tell?
 
-- **Visually:** If we look at the features represented, we can see that the clipped version doesn't represent all the features present in the original version.
-- **Quantitatively:** We can directly check whether the extents match using the `ext()` function!
-
+-   **Visually:** If we look at the features represented, we can see that the clipped version doesn't represent all the features present in the original version.
+-   **Quantitatively:** We can directly check whether the extents match using the `ext()` function!
 
 ```{r}
 
 
 ```
-
 :::
 
 In the previous example, we subsetted the extent of the raster (removed cells). Another common use of spatial subsetting is to select cells based on their values. In this case we create a "masking" raster comprised of logicals or NAs that dictates the cells we would like to preserve.
 
-```{r}
+Select observations that meet the parameter = the mask
 
-     
+```{r}
+# Create raster mask of the same resolution and extent  
+rmask <- zion_elevation
+
+# Set all cells with elevation < 2,000 meters to NA 
+rmask[rmask < 2000 ] <- NA 
+     # If working with different layers, need to specify what layer you are trying to access 
+```
+
+masking: THEN subset the elevation raster to the selected values (mask)
+
+```{r}
+# Subset elevation raster based on mask 
+
+# Approach 1: bracket subsetting 
+masked1 <- zion_elevation[rmask, drop = FALSE]
+
+# Approach 2: Used mask function 
+masked2 <- mask(zion_elevation, rmask) # (What u are masking, what u want to USE to mask)
 
 ```
 
 ```{r}
+map1 <- tm_shape(zion_elevation) + 
+  tm_raster(col.legend = tm_legend(title = "Elevation (m)")) + 
+  tm_title(text = "Original")
 
 
+map2 <- tm_shape(masked1) + 
+  tm_raster(col.legend = tm_legend(title = "Elevation (m)")) + 
+  tm_title(text = "Bracket subsetting")
+
+
+map3 <- tm_shape(masked2) + 
+  tm_raster(col.legend = tm_legend(title = "Elevation (m)")) + 
+  tm_title(text = "mask()")
+
+tmap_arrange(map1, map2, map3,nrow = 1)
 ```
-
 
 ## 4. Map algebra
+
 "Map algebra" is the set of operations that modify or summarize raster cell values with reference to surrounding cells, zones, or statistical functions that apply to every cell. Map algebra is typically categorized into local, focal, and zonal operations.
 
 ### Local operations
+
 Local operations are computed on each cell individually. For example, we can use ordinary arithmetic or logical statements.
 
 ```{r}
-
+zion_elevation + zion_elevation # doubling each cells value 
+zion_elevation^2
+log(zion_elevation)
+zion_elevation > 5 # Determins if each cell has a value greater than 5 
 
 ```
 
 We can also classify intervals of values into groups. For example, we could classify elevation into low, middle, and high elevation cells.
 
-First, we need to construct a reclassification matrix: 
+First, we need to construct a reclassification matrix:
 
-  - The first column corresponds to the lower end of the class
-  - The second column corresponds to the upper end of the class
-  - The third column corresponds to the new value for the specified ranges in columns 1 and 2
+-   The first column corresponds to the lower end of the class
+-   The second column corresponds to the upper end of the class
+-   The third column corresponds to the new value for the specified ranges in columns 1 and 2
+
+Reclassifying our legend groupings with a matrix with 4 groups
 
 ```{r}
+# Create a reclassification matrix 
+rcl <- matrix(c(1000, 1500, 1, # Group 1 ranges from 1000-1500 m 
+                1500, 2000, 2, # Group 2 ranges from 1500-2000 m 
+                2000, 2500, 3, # Group 3 ranges from 2000-2500 m 
+                2500, 3000, 4), # Group 4 ranges from 2500-3000 m 
+              ncol = 3, byrow = TRUE)
+
+# Use reclass matrix to reclassify elevation raster with `classify()`
+reclassified <- classify(zion_elevation, rcl = rcl) # (Raster, rcl = matrix)
 
 
+# Change relcassified values into factors 
+# Look at factors as a group 
+values(reclassified) <- as.factor(values(reclassified))
+  # If don't do this, summary()  will take centeral tendencies of group #s 
+
+
+
+# Check if worked 
+summary(reclassified)
+  # Tells you how many values in each group 
+  # 0: first cell we changed in the beginning 
 ```
 
 ```{r}
+map1 <- tm_shape(zion_elevation) + 
+  tm_raster(co.legend = tm_legend(title = "Elevation (m)")) + 
+  tm_title(text = "Orginal")
 
+
+map2 <- tm_shape(reclassified) + 
+  tm_raster(co.legend = tm_legend(title = "Elevation (m)")) + 
+  tm_title(text = "reclassified")
+
+tmap_arrange(map1, map2, nrow = 1)
 
 ```
-
 
 For more efficient processing, we can use a set of map algebra functions:
 
-- `app()` applies a function to each cell of a raster to summarize the values of multiple layers into one layer
-- `tapp()` is an extension of `app()` that allows us to apply an operation on a subset of layers
-- `lapp()` allows us to apply a function to each cell using layers as arguments
+-   `app()` applies a function to each cell of a raster to summarize the values of multiple layers into one layer
+-   `tapp()` is an extension of `app()` that allows us to apply an operation on a subset of layers
+-   `lapp()` allows us to apply a function to each cell using layers as arguments
 
 We can use the `lapp()`function to compute the Normalized Difference Vegetation Index (NDVI). (More on this later in the quarter!) Let's calculate NDVI for Zion National Park using multispectral satellite data.
 
 First, we need to define a function to calculate NDVI. Then, we can use `lapp()` to calculate NDVI in each raster cell. To do so, we just need the NIR and red bands.
 
-```{r}
+ndvi - used to look at density vegitation - 1 = dense vegitation, -1 = no vegetation
 
+```{r}
+# Define NDVI 
+ndvi_fun <- function(nir, red) {
+  (nir - red) / (nir + red)
+}
+
+# apply ndvi function to landsat bands 3 & 4 
+  # lapp() - apply a given function to 
+  # 4 layer = nir layer 
+  # 3 layer = red layer 
+ndvi_rast <- lapp(landsat[[c(4,3)]], fun = ndvi_fun)
 
 ```
 
 ```{r}
-
+tm_shape(ndvi_rast) + 
+  tm_raster(col.legend = tm_legend(title = "NDVI"))
 
 ```
 
 ### Focal Operations
+
 Local operations operate on one cell, though from multiple layers. Focal operations take into account a central (focal) cell and its neighbors. The neighborhood (or kernel, moving window, filter) can take any size or shape. A focal operation applies an aggregation function to all cells in the neighborhood and updates the value of the central cell before moving on to the next central cell.
 
 The image below provides an example of using a moving window filter. The large orange square highlights the 8 cells that are considered "neighbors" to the central cell (value = 8). Using this approach, the value of the central cell will be updated to the minimum value of its neighboring cells (in this case 0). This process then repeats for each cell.
-
 
 ::: {.gray-text .center-text}
 [*Geocomputation with R*](https://r.geocompx.org/spatial-operations#focal-operations){target="_blank"}
 :::
 
-
 We can use the `focal()` function to perform spatial filtering. We define the size, shape, and weights of the moving window using a matrix. In the following example we'll find the minimum value in 9x9 cell neighborhoods.
 
 ```{r}
+# Look at min of each 9 by 9 box and assigning that value to the matrix 
+elevation_focal <- focal(zion_elevation, 
+                         w = matrix(1, nrow = 9, ncol = 9), # 1 = look at each cell individually 
+                         fun = min ) 
 
-
+# Smoothed out the elevation gradient, as alike neighbors now have the same value 
 ```
 
 ```{r}
+map1 <- tm_shape(zion_elevation) + 
+  tm_raster(col.legend = tm_legend(title = "Elevation (m)")) + 
+  tm_title(text = "Original")
 
+map2 <- tm_shape(elevation_focal) + 
+  tm_raster(col.legend = tm_legend(title = "Elevation (m)")) + 
+  tm_title(text = "aggregated")
+
+tmap_arrange(map1, map2, nrow = 1)
 
 ```
 
-:::{.callout-tip icon=true collapse=true}
+::: {.callout-tip icon="true" collapse="true"}
 # Critical thinking
 
 What should we expect to observe in the output for this spatial filtering example?
 
-- Overall, we see more lower values because we are finding the minimum value in each neighborhood
-- The output looks "grainier" because many cells have the same values as their neighbors
-
+-   Overall, we see more lower values because we are finding the minimum value in each neighborhood
+-   The output looks "grainier" because many cells have the same values as their neighbors
 :::
 
 ### Zonal Operations
+
 Similar to focal operations, zonal operations apply an aggregation function to multiple cells. However, instead of applying operations to neighbors, zonal operations aggregate based on "zones". Zones can are defined using a categorical raster and do not necessarily have to be neighbors
 
 For example, we could find the average elevation within the elevations zones we created.
 
 ```{r}
-
+zonal(zion_elevation, reclassified, fun = "mean") %>% # (df, use as zional grouping, function) 
+  kable(col.names = c("Elevation zone", "mean elevation (m)")) %>% 
+  kable_styling(bootstrap_options = "striped")
 
 ```
 
+# Geometry Operations!!!
 
-
-# Geometry Operations
 When merging or performing map algebra, rasters need to match in their resolution, projection, origin, and/or extent
 
 ## 1. Changing extent, origin, and resolution
+
 ### Extent
+
 In the simplest case, two images differ only in their extent. Let's start by increasing the extent of a elevation raster.
 
 ```{r}
-
+# Changing extend - adding empty columns 
+elev_2 <- extend(zion_elevation, c(1, 200)) 
+# Add 1 row to top and bottom ee
+# Add 200 columns to left and right 
 ```
 
 Performing algebraic operations on objects with different extents doesn't work.
 
 ```{r}
-
+# ERROR: extends dont match  --> Cannot preform opperations 
+zino_elevation + elev_2
 ```
 
 We can align the extent of the 2 rasters using the `extend()` function. Here we extend the `zion_elevation` object to the extent of elev_2 by adding NAs.
 
 ```{r}
+# Making elev_3 the same extent of elev_2 
+elev_3 <- extend(zion_elevation, elev_2) 
 
+# Now can preform operations because extends are the same 
+elev_2 + elev_3
 ```
 
 ### Origin
-The origin function returns the coordinates of the cell corner closes to the coordinates (0,0). 
+
+The origin function returns the coordinates of the cell corner closes to the coordinates (0,0).
 
 ```{r}
-
 
 ```
 
 ### Resolution
+
 Raster datasets can also differ in their resolution. To match resolutions we can decrease (or coarsen) the resolution by aggregating or increase (or sharpen) the resolution by disaggregating.
 
 #### Aggregating
+
 When decreasing the resolution of rasters, we are effectively combining multiple cells into a single cell. Let's start by coarsening the resolution of the Zion elevation data by a factor of 5, by taking the mean value of cells.
 
 ```{r}
-
+# Aggregating 
+# Decreasing resolution / decreasing number of cells = change shape 
+zion_elevation_coarse <- aggregate(zion_elevation, fact = 5, fun = mean)
+# Cells are now larger 
+# Different than neighboring because in neighboring we were just taking the mean of neighboring cells; here are CHANGING resolution 
 ```
 
 ```{r}
+map1 <- tm_shape(zion_elevation) + 
+  tm_raster(col.legend = tm_legend(title = "Elevation (m)")) + 
+  tm_title(text = "Orginal")
 
+map2 <- tm_shape(zion_elevation_coarse) + 
+  tm_raster(col.legend = tm_legend(title = "Elevation (m)")) + 
+  tm_title(text = "Aggregation")
 
-
+tmap_arrange(map1, map2, nrow = 1)
 ```
 
-:::{.callout-tip icon=true collapse=true}
+::: {.callout-tip icon="true" collapse="true"}
 # Critical thinking
 
 What should we observe in the output?
@@ -470,8 +605,7 @@ The aggregated raster appears "grainier" because the cells are now larger. This 
 
 #### Disaggregating
 
-To increase the resolution of a raster, we need to break a single cell into multiple cells. There are many ways to do this and the appropriate method will often depend on our specific purpose. However, most approaches define the values of the new (smaller) cells based on not only the value of the original cell they came from, but also neighboring cells. 
-
+To increase the resolution of a raster, we need to break a single cell into multiple cells. There are many ways to do this and the appropriate method will often depend on our specific purpose. However, most approaches define the values of the new (smaller) cells based on not only the value of the original cell they came from, but also neighboring cells.
 
 ::: {.gray-text .center-text}
 [*Geocomputation with R*](https://r.geocompx.org/geometry-operations#aggregation-and-disaggregation){target="_blank"}
@@ -479,7 +613,7 @@ To increase the resolution of a raster, we need to break a single cell into mult
 
 In the example below, we use the bilinear method to disaggregate the elevation raster we aggregated in the previous example.
 
-:::{.callout-tip icon=true collapse=true}
+::: {.callout-tip icon="true" collapse="true"}
 # Critical thinking
 
 Does disaggregating the aggregated version get us back to the original raster?
@@ -492,17 +626,23 @@ No! There is no way for us to exactly recover the original data from the aggrega
 ```
 
 ```{r}
+# Spiting each pixel into a 5 by 5 grid / cells
+zion_elevation_disagg <- disagg(zion_elevation_coarse, fact = 5, method = "bilinear")
 
+# DOES NOT MATCH THE ORGINAL DATA BECAUSE YOU CAN NEVER GET BACK TO ORGINAL DATA WHEN DISAGGREGATING 
 
+map3 <- tm_shape(zion_elevation_disagg) + 
+  tm_raster(col.legend = tm_legend(title = "Elevation (m)")) + 
+  tm_title(text = "Disaggregated")
+
+tmap_arrange(map1, map2, map3, nrow = 1)
 ```
-
 
 ## 2. Resampling
 
-Aggregation/disaggregation work when both rasters have the same origins. 
+Aggregation/disaggregation work when both rasters have the same origins.
 
 But what do we do in the case where we have two or more rasters with different origins and resolutions? Resampling computes values for new pixel locations based on custom resolutions and origins.
-
 
 ::: {.gray-text .center-text}
 [*Geocomputation with R*](https://r.geocompx.org/geometry-operations#resampling){target="_blank"}
@@ -517,7 +657,6 @@ In most cases, the target raster would be an object you are already working with
 ```{r}
 
 ```
-
 
 # Summary of new functions
 
@@ -557,4 +696,3 @@ knitr::kable(attr_layers_df,
   kableExtra::pack_rows("Spatial data operations", 1, 11) %>%
   kableExtra::pack_rows("Geometry operations", 12, 16)
 ```
-

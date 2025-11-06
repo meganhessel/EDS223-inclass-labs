@@ -89,8 +89,8 @@ As an example we'll work with the following two datasets from the `spData` packa
 We'll explore by trying to find all the high points in the region of Canterbury (shown in dark grey).
 
 ```{r}
-nz <- spData::nz
-nz_height <- spData::nz_height
+nz <- spData::nz # polygons 
+nz_height <- spData::nz_height # Elevation- points 
 
 
 # filter to the region on Cantery Berry 
@@ -152,7 +152,7 @@ This can be converted into logical vector of `TRUE` and `FALSE` values which can
 # Sparse binary predicate list 
 
 # Looks at each element, 
-# If intersect, returns 1. If not intersects, returns empty 
+# If intersect, returns 1. If not intersects, returns empty <- 
 nz_height_sgbp <- st_intersects(x = nz_height, y = canterbury)
 nz_height_sgbp
 
